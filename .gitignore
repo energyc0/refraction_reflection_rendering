@@ -1,0 +1,11 @@
+/out
+/.vs
+
+CMakePresets.json
+graphics_rendering1.exe
+graphics_rendering1.ilk
+graphics_rendering1.pdb
+imgui.ini
+
+*.spv
+*.bat
