@@ -14,6 +14,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 #define IMGUI_IMPLEMENTATION
@@ -124,7 +125,8 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 void MouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
 class Camera {
-    vec3 pos = vec3(350.5f, 350.5f, 350.5f);
+    vec3 pos = vec3(-350.5f, 0.0f, -350.5f);
+    const float sensetivity = 1.0f;
 public:
     double xCursorPos = 0.f;
     double yCursorPos = 0.f;
@@ -132,11 +134,12 @@ public:
     bool isRightButtonPressed = false;
     bool isMiddleButtonPressed = false;
     float scrollSpeed = 50.0f;
+    glm::quat cameraRotation = glm::quat(vec3());
 public:
     mat4 getCameraView();
     vec3 getPos();
     void cameraScroll(double yOffset);
-    void rotateCamera(mat4& mat);
+    void rotateCamera(const glm::vec2& deltaXY);
 };
 
 class App {
@@ -255,7 +258,6 @@ void App::initVulkan() {
     createGraphicsPipelines();
     createSyncObjects();
     initImGui();
-
 }
 
 void App::appShutdown() {
@@ -346,7 +348,6 @@ void App::initImGui() {
         std::cerr << "FAILED TO INIT IMGUI + VULKAN!";
         VK_ASSERT(VK_ERROR_INITIALIZATION_FAILED);
     }
-    //auto io = ImGui::GetIO();
 }
 
 void App::mainLoop() {
@@ -546,10 +547,9 @@ void App::recordCommandBuffer(uint32_t i, float deltaTime) {
     auto& style = ImGui::GetStyle();
     ImGui::Begin("123", &isOpened, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse  | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize/* | ImGuiWindowFlags_NoBackground*/);
     ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
-    ImGui::Text((std::string("FPS: ") + std::to_string(static_cast<int>(1000.f / deltaTime))).c_str());
-    ImGui::Text((std::string("Total vertices: ") + std::to_string(vertices.size())).c_str());
-    //ImGui::Text(std::string("Pitch: " + std::to_string(camera.pitch) + " Yaw: " + std::to_string(camera.yaw)).c_str());
-    ImGui::Text((std::string("Camera position:\nX = ") + std::to_string(pos.x) + "\nY = " + std::to_string(pos.y) + "\nZ = " + std::to_string(pos.y)).c_str());
+    ImGui::Text("FPS: %d", static_cast<int>(1000.f / deltaTime));
+    ImGui::Text("Total vertices: %i", vertices.size());
+    ImGui::Text("Camera position:\nX = %.2f \nY = %.2f% \nZ = %.2f", pos.x, pos.y, pos.y);
     ImGui::DragFloat("Scroll speed", &camera.scrollSpeed, 1.0f, 0.1f, 100.f, "%3.2f", ImGuiSliderFlags_AlwaysClamp);
     ImGui::DragFloat3("Model size: ", modelSize.data(), 0.01f, 0.00001f, 10000.f, "%5.5f", ImGuiSliderFlags_AlwaysClamp);
     ImGui::Checkbox("Wireframe", &isWireframeShown);
@@ -1225,9 +1225,8 @@ void CursorPosCallback(GLFWwindow* window, double xPos, double yPos) {
         double deltaY = yPos - camera->yCursorPos;
         int width, height;
         glfwGetWindowSize(window, &width, &height);
-        glm::vec2 deltaXY(deltaX / width, deltaY / height);
-        auto mat = glm::rotate(mat4(1.f), glm::radians(360.f * deltaXY.x), vec3(0.f, 1.f, 0.f));
-        camera->rotateCamera(mat);
+        const glm::vec2 deltaXY(deltaX / width, deltaY / height);
+        camera->rotateCamera(deltaXY);
     }
     camera->xCursorPos = xPos;
     camera->yCursorPos = yPos;
@@ -1267,8 +1266,14 @@ void Camera::cameraScroll(double yOffset) {
     }
 }
 
-void Camera::rotateCamera(mat4& mat) {
-    pos = vec4(pos,1.f) * mat;
+void Camera::rotateCamera(const glm::vec2& deltaXY) {
+    cameraRotation = 
+        glm::angleAxis(glm::radians(deltaXY.x * 360.f * sensetivity),
+            vec3(0.0f, 1.0f, 0.0f));
+    cameraRotation *= 
+        glm::angleAxis(glm::radians(deltaXY.y * 360.f),
+            glm::cross(glm::normalize(-pos), vec3(0.0f,1.0f,0.0f)));
+    pos = vec4(pos, 1.0f) * glm::mat4_cast(cameraRotation);
 }
 
 vec3 Camera::getPos() {
