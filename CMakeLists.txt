@@ -25,38 +25,44 @@ add_executable (graphics_rendering1 "src/main.cpp"
 	"externals/ImGui/backends/imgui_impl_glfw.h"
 	"externals/ImGui/backends/imgui_impl_vulkan.cpp" 
 	"externals/ImGui/backends/imgui_impl_vulkan.h" 
+	"externals/ktx/include/ktx.h"
 )
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET graphics_rendering1 PROPERTY CXX_STANDARD 20)
 endif()
-
 find_package(Vulkan REQUIRED)
 if(NOT Vulkan_FOUND)
 	message(FATAL_ERROR "FAILED TO FIND VULKAN!")
 endif()
 message(STATUS "Found Vulkan: $ENV{VULKAN_SDK}")
 
+set(KTX_PATH "externals/ktx")
+set(ktx_DIR ${KTX_PATH}/lib/cmake/ktx)
+find_package(ktx CONFIG REQUIRED)
+
 set(GLFW_PATH ${CMAKE_CURRENT_LIST_DIR}/externals/glfw)
-message(STATUS "GLFW_PATH = ${GLFW_PATH}")
-
 set(glm_DIR "externals/glm")
-
 if(NOT TINYOBJ_PATH)
 	set(TINYOBJ_PATH externals/tinyobjloader)
 	message(STATUS "TINYOBJ_PATH is not specified: ${TINYOBJ_PATH}")
 endif()
-
+set(STB_PATH "externals/stb-master")
 set(IMGUI_PATH externals/ImGui)
+
 target_include_directories(graphics_rendering1 PRIVATE 
 	${Vulkan_INCLUDE_DIRS}
 	${GLFW_PATH}/include
 	${TINYOBJ_PATH}
 	${IMGUI_PATH}
 	${glm_DIR}
+	${STB_PATH}
+	KTX::ktx
 )
-target_link_libraries(graphics_rendering1 PRIVATE
+target_link_libraries(graphics_rendering1
+	PRIVATE
 	${Vulkan_LIBRARIES}
 	${GLFW_PATH}/bin/glfw3.lib
+	KTX::ktx
 )
