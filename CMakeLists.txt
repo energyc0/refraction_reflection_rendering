@@ -8,7 +8,8 @@ endif()
 project ("graphics_rendering1")
 set(CMAKE_BUILD_TYPE Debug)
 
-add_executable (graphics_rendering1 "src/main.cpp"
+add_executable (graphics_rendering1 
+	"src/main.cpp"
 	"externals/tinyobjloader/tiny_obj_loader.h"
 	"externals/ImGui/imconfig.h"
 	"externals/ImGui/imgui.cpp"
@@ -25,8 +26,24 @@ add_executable (graphics_rendering1 "src/main.cpp"
 	"externals/ImGui/backends/imgui_impl_glfw.h"
 	"externals/ImGui/backends/imgui_impl_vulkan.cpp" 
 	"externals/ImGui/backends/imgui_impl_vulkan.h" 
-	"externals/ktx/include/ktx.h"
-)
+	"src/App.h"
+	"src/App.cpp"
+	"src/VulkanUtilities.h"
+	"src/VulkanUtilities.cpp"
+	"src/Camera.h"
+	"src/Camera.cpp"
+	"src/Timer.h"
+	"src/Timer.cpp"
+	"src/RendererBase.h"
+	"src/VulkanContext.h"
+	"src/VulkanContext.cpp"
+	"src/RendererBase.cpp"
+	"src/CubeRenderer.h" 
+	"src/CubeRenderer.cpp"
+	"src/MeshRenderer.h" 
+	"src/MeshRenderer.cpp"
+	"src/ImGuiRenderer.h"
+	"src/ImGuiRenderer.cpp")
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
@@ -37,10 +54,6 @@ if(NOT Vulkan_FOUND)
 	message(FATAL_ERROR "FAILED TO FIND VULKAN!")
 endif()
 message(STATUS "Found Vulkan: $ENV{VULKAN_SDK}")
-
-set(KTX_PATH "externals/ktx")
-set(ktx_DIR ${KTX_PATH}/lib/cmake/ktx)
-find_package(ktx CONFIG REQUIRED)
 
 set(GLFW_PATH ${CMAKE_CURRENT_LIST_DIR}/externals/glfw)
 set(glm_DIR "externals/glm")
@@ -58,11 +71,9 @@ target_include_directories(graphics_rendering1 PRIVATE
 	${IMGUI_PATH}
 	${glm_DIR}
 	${STB_PATH}
-	KTX::ktx
 )
 target_link_libraries(graphics_rendering1
 	PRIVATE
 	${Vulkan_LIBRARIES}
 	${GLFW_PATH}/bin/glfw3.lib
-	KTX::ktx
 )
