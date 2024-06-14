@@ -16,7 +16,7 @@ App::App(int width, int height, const char* pApplicationName, const char* pEngin
     freeCamera(glm::vec3(0.f, 0.f, 100.f), glm::vec3(0.f), 1.f,1.f) {
     initWindow(width,height);
     vkContext = std::make_unique<VulkanContext>(window, pApplicationName, pEngineName, options);
-    options.isWireframeEnabled = false;
+    options.mode = static_cast<int>(DrawingMode::SOLID);
     options.modelSize = glm::vec3(1.0f);
     options.scrollSpeed = 50.f;
     options.currentCamera = &freeCamera;

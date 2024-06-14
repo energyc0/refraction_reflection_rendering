@@ -15,8 +15,8 @@
 struct VertexData {
     glm::vec3 pos;
     alignas(16)glm::vec3 color;
+    alignas(16)glm::vec3 normal;
     alignas(16)glm::vec3 texCoords;
-
     static std::vector<VkVertexInputBindingDescription> getBindingDescription() {
         std::vector<VkVertexInputBindingDescription> binding(1);
         binding[0].binding = 0;
@@ -25,7 +25,7 @@ struct VertexData {
         return binding;
     }
     static std::vector<VkVertexInputAttributeDescription> getAttributeDescription() {
-        std::vector<VkVertexInputAttributeDescription>description(3);
+        std::vector<VkVertexInputAttributeDescription>description(4);
         description[0].binding = 0;
         description[0].format = VK_FORMAT_R32G32B32_SFLOAT;
         description[0].location = 0;
@@ -39,7 +39,12 @@ struct VertexData {
         description[2].binding = 0;
         description[2].format = VK_FORMAT_R32G32B32_SFLOAT;
         description[2].location = 2;
-        description[2].offset = offsetof(VertexData, texCoords);
+        description[2].offset = offsetof(VertexData, normal);
+
+        description[3].binding = 0;
+        description[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+        description[3].location = 3;
+        description[3].offset = offsetof(VertexData, texCoords);
         return description;
     }
 };
@@ -96,6 +101,9 @@ struct ModelFilename {
 
 struct PushConstantData {
     VkBool32 isWireframeShown;
+    VkBool32 isReflectionEnabled;
+    VkBool32 isRefractionEnabled;
+    alignas(16)glm::vec3 cameraPos;
 };
 
 struct TransformMatricesData {
@@ -105,7 +113,7 @@ struct TransformMatricesData {
 };
 
 struct ApplicationOptions {
-    bool isWireframeEnabled;
+    int mode;
     glm::vec3 modelSize;
     float scrollSpeed;
     CameraBase* currentCamera;

@@ -1,6 +1,9 @@
 #include "MeshRenderer.h"
 
-MeshRenderer::MeshRenderer(const VulkanRenderDevice& VkDev, std::vector<ModelFilename> filenames, glm::vec3& _size) : RendererBase(VkDev), size(_size) {
+MeshRenderer::MeshRenderer(const VulkanRenderDevice& VkDev, std::vector<ModelFilename> filenames, glm::vec3& _size, VulkanTexture text) :
+    RendererBase(VkDev),
+    size(_size),
+    texture(text){
 	std::vector<VertexData> vertices;
 	std::vector<uint32_t> indices;
 	for (auto& filename : filenames) {
@@ -10,7 +13,11 @@ MeshRenderer::MeshRenderer(const VulkanRenderDevice& VkDev, std::vector<ModelFil
 	createVertexBuffer(VkDev,vertices);
 	createIndexBuffer(VkDev,indices);
 	createUniformBuffers(VkDev, sizeof(TransformMatricesData));
-    createDescriptorTools(VkDev);
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = texture.imageInfo.imageView;
+    imageInfo.sampler = texture.sampler;
+    createDescriptorTools(VkDev, &imageInfo);
     createPipelineLayout(sizeof(PushConstantData), VK_SHADER_STAGE_FRAGMENT_BIT);
     createPipeline(VkDev);
     pushData = {};
@@ -81,7 +88,10 @@ void MeshRenderer::updateUniformBuffers(const ApplicationOptions& options, uint3
     data.perspective = glm::perspective(90.f, static_cast<float>(framebufferWidth) / static_cast<float>(framebufferHeight), 0.1f, 100000.f);
     data.perspective[1][1] *= -1;
     memcpy(uniformBuffers[currentImage].pointer, &data, sizeof(TransformMatricesData));
-    pushData.isWireframeShown = options.isWireframeEnabled;
+    pushData.isWireframeShown = options.mode == static_cast<int>(DrawingMode::WIREFRAME);
+    pushData.isReflectionEnabled = options.mode == static_cast<int>(DrawingMode::REFLECTION);
+    pushData.isRefractionEnabled = options.mode == static_cast<int>(DrawingMode::REFRACTION);
+    pushData.cameraPos = options.currentCamera->getPos();
 }
 void MeshRenderer::createPipeline(const VulkanRenderDevice& VkDev) {
     VkShaderModule vertexShaderModule = createShaderModule(VkDev, "shaders/vertexShader.spv"),

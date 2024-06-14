@@ -12,10 +12,15 @@ layout(binding = 0) uniform UniformBuffer{
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 color;
+layout(location = 2) in vec3 norm;
 
 layout(location = 0) out vec3 geometryColor;
+layout(location = 1) out vec3 geomPos;
+layout(location = 2) out vec3 geomNorm;
 
 void main(){
-    gl_Position =  ubo.transformData.perspective * ubo.transformData.view * ubo.transformData.model * vec4(position,1.0);
+    geomPos = vec3(ubo.transformData.model * vec4(position,1.0));
+    geomNorm = norm;
+    gl_Position =  ubo.transformData.perspective * ubo.transformData.view * vec4(geomPos,1.0);
     geometryColor = color;
 }

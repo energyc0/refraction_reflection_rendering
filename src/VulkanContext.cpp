@@ -12,8 +12,8 @@ VulkanContext::VulkanContext(GLFWwindow* window, const char* pApplicationName, c
 	ModelFilename filenames{};
 	filenames.obj_filename = obj_filename;
 	filenames.mtl_filename = mtl_filename;
-	meshRenderer = (new MeshRenderer(*VkDev, {filenames}, options.modelSize));
 	cubeRenderer = (new CubeRenderer(*VkDev));
+	meshRenderer = (new MeshRenderer(*VkDev, {filenames}, options.modelSize, cubeRenderer->getCubemap()));
 	imguiRenderer = (new ImGuiRenderer(*VkInst, *VkDev, window, &options));
 	currentImage = 0;
 }

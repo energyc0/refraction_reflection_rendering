@@ -300,6 +300,11 @@ void loadModel(ModelFilename& filenames,
 				data.color.r = materials[matInd].diffuse[0];
 				data.color.g = materials[matInd].diffuse[1];
 				data.color.b = materials[matInd].diffuse[2];
+
+				data.normal.x = attrib.normals[3 * static_cast<uint32_t>(index.vertex_index) + 0];
+				data.normal.y = attrib.normals[3 * static_cast<uint32_t>(index.vertex_index) + 1];
+				data.normal.z = attrib.normals[3 * static_cast<uint32_t>(index.vertex_index) + 2];
+				data.normal = glm::normalize(data.normal);
 				vertices.push_back(data);
 				indices.push_back(index_offset + v);
 			}

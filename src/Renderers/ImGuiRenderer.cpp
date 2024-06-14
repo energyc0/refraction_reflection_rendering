@@ -40,6 +40,7 @@ ImGuiRenderer::~ImGuiRenderer() {
     ImGui::DestroyContext();
 }
 void ImGuiRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, uint32_t currentImage, float deltaTime) {
+    if (options->isInterfaceShown) {
         bool isOpened = true;
         auto pos = options->currentCamera->getPos();
         ImGui_ImplVulkan_NewFrame();
@@ -52,15 +53,17 @@ void ImGuiRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, uint32_t cu
             ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags_NoResize);
         ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
+        ImGui::Text("Press F11 to close/open");
         ImGui::Text("OPTIONS");
         ImGui::Text("FPS: %d", static_cast<int>(1000 / deltaTime));
         ImGui::Text("Camera position:\nX = %.2f \nY = %.2f% \nZ = %.2f", pos.x, pos.y, pos.z);
-        ImGui::DragFloat("Scroll speed", &options->scrollSpeed, 1.0f, 0.1f, 100.f, "%3.2f", ImGuiSliderFlags_AlwaysClamp);
-        ImGui::DragFloat3("Model size: ", glm::value_ptr(options->modelSize), 0.01f, 0.00001f, 10.f, "%5.5f", ImGuiSliderFlags_AlwaysClamp);
-        ImGui::Checkbox("Wireframe", &options->isWireframeEnabled);
+        ImGui::DragFloat3("Model size: ", glm::value_ptr(options->modelSize), 0.1f, 0.00001f, 1000.f, "%5.5f", ImGuiSliderFlags_AlwaysClamp);
+        const char* modes[] = { "Solid", "Wireframe", "Reflection", "Refraction" };
+        ImGui::ListBox("Drawing mode", &options->mode, modes, 4);
         ImGui::End();
         ImGui::Render();
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+    }
 }
 void ImGuiRenderer::createDescriptorTools(const VulkanRenderDevice& VkDev) {
     std::vector<VkDescriptorPoolSize> poolSize(2);

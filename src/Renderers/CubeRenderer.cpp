@@ -4,12 +4,12 @@
 
 CubeRenderer::CubeRenderer(VulkanRenderDevice& VkDev) : RendererBase(VkDev){
     CubemapFilenames filenames{};
-    filenames.negX = "assets/textures/skybox/right.jpg";
-    filenames.negY = "assets/textures/skybox/top.jpg";
-    filenames.negZ = "assets/textures/skybox/front.jpg";
-    filenames.posX = "assets/textures/skybox/left.jpg";
-    filenames.posY = "assets/textures/skybox/bottom.jpg";
-    filenames.posZ = "assets/textures/skybox/back.jpg";
+    filenames.negX = "assets/textures/skybox/left.jpg";
+    filenames.negY = "assets/textures/skybox/bottom.jpg";
+    filenames.negZ = "assets/textures/skybox/back.jpg";
+    filenames.posX = "assets/textures/skybox/right.jpg";
+    filenames.posY = "assets/textures/skybox/top.jpg";
+    filenames.posZ = "assets/textures/skybox/front.jpg";
     createUniformBuffers(VkDev, sizeof(TransformMatricesData));
     createCubemapTexture(VkDev, &filenames);
     createSampler(VkDev, cubemap.sampler);
@@ -74,12 +74,12 @@ void CubeRenderer::createPipeline(const VulkanRenderDevice& VkDev) {
 void CubeRenderer::createCubemapTexture(VulkanRenderDevice& VkDev,CubemapFilenames* filenames) {
     std::array<stbi_uc*, 6> pixels{};
     int width, height, channels;
-    pixels[0] = stbi_load(filenames->negX, &width, &height, &channels, STBI_rgb_alpha);
-    pixels[1] = stbi_load(filenames->posX, &width, &height, &channels, STBI_rgb_alpha);
-    pixels[2] = stbi_load(filenames->negY, &width, &height, &channels, STBI_rgb_alpha);
-    pixels[3] = stbi_load(filenames->posY, &width, &height, &channels, STBI_rgb_alpha);
-    pixels[4] = stbi_load(filenames->negZ, &width, &height, &channels, STBI_rgb_alpha);
-    pixels[5] = stbi_load(filenames->posZ, &width, &height, &channels, STBI_rgb_alpha);
+    pixels[0] = stbi_load(filenames->posX, &width, &height, &channels, STBI_rgb_alpha);
+    pixels[1] = stbi_load(filenames->negX, &width, &height, &channels, STBI_rgb_alpha);
+    pixels[2] = stbi_load(filenames->posY, &width, &height, &channels, STBI_rgb_alpha);
+    pixels[3] = stbi_load(filenames->negY, &width, &height, &channels, STBI_rgb_alpha);
+    pixels[4] = stbi_load(filenames->posZ, &width, &height, &channels, STBI_rgb_alpha);
+    pixels[5] = stbi_load(filenames->negZ, &width, &height, &channels, STBI_rgb_alpha);
     const VkDeviceSize layerSize = width * height * 4;
     VulkanBuffer stagingBuffer;
     stagingBuffer.size = layerSize * 6;
