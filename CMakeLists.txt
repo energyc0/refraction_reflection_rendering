@@ -6,7 +6,9 @@ if (POLICY CMP0141)
 endif()
 
 project ("graphics_rendering1")
+
 set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
 add_executable (graphics_rendering1 
 	"src/main.cpp"
@@ -30,21 +32,30 @@ add_executable (graphics_rendering1
 	"src/App.cpp"
 	"src/VulkanUtilities.h"
 	"src/VulkanUtilities.cpp"
-	"src/Camera.h"
-	"src/Camera.cpp"
+	"src/Camera/CentredCamera.h"
+	"src/Camera/CentredCamera.cpp"
 	"src/Timer.h"
 	"src/Timer.cpp"
-	"src/RendererBase.h"
 	"src/VulkanContext.h"
 	"src/VulkanContext.cpp"
-	"src/RendererBase.cpp"
-	"src/CubeRenderer.h" 
-	"src/CubeRenderer.cpp"
-	"src/MeshRenderer.h" 
-	"src/MeshRenderer.cpp"
-	"src/ImGuiRenderer.h"
-	"src/ImGuiRenderer.cpp")
+	"src/Renderers/RendererBase.h"
+	"src/Renderers/RendererBase.cpp"
+	"src/Renderers/CubeRenderer.h" 
+	"src/Renderers/CubeRenderer.cpp"
+	"src/Renderers/MeshRenderer.h" 
+	"src/Renderers/MeshRenderer.cpp"
+	"src/Renderers/ImGuiRenderer.h"
+	"src/Renderers/ImGuiRenderer.cpp"
+	"src/Camera/CameraBase.h" 
+	"src/Camera/FreeCamera.h"
+	"src/Camera/FreeCamera.cpp" )
+include_directories(
+	src
+	src/Renderers
+	src/Camera
+)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_LIST_DIR})
+
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET graphics_rendering1 PROPERTY CXX_STANDARD 20)

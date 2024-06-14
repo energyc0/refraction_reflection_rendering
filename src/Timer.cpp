@@ -1,15 +1,22 @@
 #include "Timer.h"
+#include <iostream>
 
-Timer::Timer() {
+Timer::Timer(float show_FPS_delay_ms) : showDelay_ms(show_FPS_delay_ms){
+    if (showDelay_ms <= 0.0f) {
+        std::cerr << "Incorrect timer delay!";
+        exit(EXIT_FAILURE);
+    }
     startTimePoint = lastTimePoint = std::chrono::high_resolution_clock::now();
+    deltaTime = 0.0f;
+    timePast_ms = showDelay_ms;
 }
-
-float Timer::getDeltaTime() {
+void Timer::Tick() {
     auto temp = lastTimePoint;
     lastTimePoint = std::chrono::high_resolution_clock::now();
-    return std::chrono::duration<float, std::chrono::milliseconds::period>(lastTimePoint - temp).count();
-}
-
-float Timer::getProgramTime() {
-    return std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::high_resolution_clock::now() - startTimePoint).count();
+    float delta = std::chrono::duration<float, std::chrono::milliseconds::period>(lastTimePoint - temp).count();
+    timePast_ms += delta;
+    if (timePast_ms >= showDelay_ms) {
+        deltaTime = delta;
+        timePast_ms = 0.0f;
+    }
 }

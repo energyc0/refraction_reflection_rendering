@@ -53,5 +53,6 @@ layout(location = 0) out vec3 texCoord;
 
 void main(){
     texCoord = skybox_verticies[gl_VertexIndex];
-    gl_Position = ubo.perspective*mat4(mat3(ubo.view))*vec4(skybox_verticies[gl_VertexIndex],1.0);
+    vec4 pos = ubo.perspective*mat4(mat3(ubo.view))*vec4(skybox_verticies[gl_VertexIndex],1.0);
+    gl_Position = pos.xyww;
 }

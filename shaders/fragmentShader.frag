@@ -1,7 +1,6 @@
 #version 460
 
 layout(push_constant) uniform PushConstant{
-	float sinus;
 	bool isWireframeShown;
 }push;
 

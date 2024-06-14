@@ -10,17 +10,18 @@
 #include <glm/gtc/matrix_transform.hpp>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include "CameraBase.h"
 
 struct VertexData {
     glm::vec3 pos;
     alignas(16)glm::vec3 color;
     alignas(16)glm::vec3 texCoords;
 
-    static VkVertexInputBindingDescription getBindingDescription() {
-        VkVertexInputBindingDescription binding{};
-        binding.binding = 0;
-        binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        binding.stride = sizeof(VertexData);
+    static std::vector<VkVertexInputBindingDescription> getBindingDescription() {
+        std::vector<VkVertexInputBindingDescription> binding(1);
+        binding[0].binding = 0;
+        binding[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        binding[0].stride = sizeof(VertexData);
         return binding;
     }
     static std::vector<VkVertexInputAttributeDescription> getAttributeDescription() {
@@ -46,7 +47,9 @@ struct VertexData {
 struct VulkanQueueFamilies {
     std::optional<uint32_t> graphicsIndex;
     std::optional<uint32_t> presentIndex;
-    bool isComplete() const;
+    inline bool isComplete() const {
+        return graphicsIndex.has_value() && presentIndex.has_value();
+    }
 };
 
 struct VulkanSwapchainInfo {
@@ -92,7 +95,6 @@ struct ModelFilename {
 };
 
 struct PushConstantData {
-    float sinus;
     VkBool32 isWireframeShown;
 };
 
@@ -102,14 +104,20 @@ struct TransformMatricesData {
     glm::mat4 perspective;
 };
 
+struct ApplicationOptions {
+    bool isWireframeEnabled;
+    glm::vec3 modelSize;
+    float scrollSpeed;
+    CameraBase* currentCamera;
+    bool isInterfaceShown;
+};
+
 class VulkanInstance {
-private:
-    bool isLayersSupported;
 public:
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkSurfaceKHR surface;
-    const bool isDebugging;
+    bool isDebugging;
 private:
     void createInstance(const GLFWwindow* window, const char* pApplicationName, const char* pEngineName, const std::vector<const char*>& layers);
     VkResult createDebugUtilsMessenger(VkDebugUtilsMessengerCreateInfoEXT* createInfo);
@@ -117,7 +125,7 @@ private:
     bool isValidationLayersSupported(const std::vector<const char*>& layers);
     std::vector<const char*> getExtensions() const;
 public:
-    VulkanInstance(const GLFWwindow* window, const char* pApplicationName, const char* pEngineNameconst, std::vector<const char*> layers);
+    VulkanInstance(const GLFWwindow* window, const char* pApplicationName, const char* pEngineNameconst);
     ~VulkanInstance();
 };
 
@@ -135,25 +143,22 @@ public:
 
     VulkanQueueFamilies queueFamilies;
     std::vector<VkFramebuffer> framebuffers;
-    std::vector<VkSemaphore> imageReadySemaphores;
-    std::vector<VkSemaphore> readyToRenderSemaphores;
-    std::vector<VkFence> drawFrameFences;
     VkQueue graphicsQueue;
     VkQueue presentQueue;
 
     VulkanImage depthImage;
 private:
     void pickPhysicalDevice(const VulkanInstance& VkInst);
-    void createDevice(const VulkanInstance& VkInst, const std::vector<const char*>& layers);
+    void createDevice(const VulkanInstance& VkInst);
     void createSwapchain(const VulkanInstance& VkInst, GLFWwindow* window);
     void createRenderPass();
     void createCommandPool();
     void createFrameBuffers();
-    void createSyncObjects();
     void createDepthResources();
     bool isPhysicalDeviceSupported(VkPhysicalDevice physicalDevice);
+    VkFormat chooseSurfaceFormat(const VulkanInstance& VkInst) const;
 public:
-    VulkanRenderDevice(const VulkanInstance& VkInst, const std::vector<const char*>& layers, GLFWwindow* window);
+    VulkanRenderDevice(const VulkanInstance& VkInst, GLFWwindow* window);
     void cleanupSwapchain();
     void recreateSwapchain(const VulkanInstance& VkInst, GLFWwindow* window);
     ~VulkanRenderDevice();
@@ -203,8 +208,6 @@ void copyBuffers(const VulkanRenderDevice& VkDev,
     VkBuffer dstBuffer,
     uint32_t size);
 
-//void createCubemap(const char* filename, VkImage* image, VkDeviceMemory* imageMemory, VkImageView* imageView, VkSampler* sampler);
-
 void transitionImageLayout(const VulkanRenderDevice& VkDev,
     VkImage& image,
     VkPipelineStageFlags srcStageMask,
@@ -228,26 +231,13 @@ void loadModel(ModelFilename& filenames,
     std::vector<VertexData>& vertices,
     std::vector<uint32_t>& indices);
 
-void createGraphicsPipeline(const VulkanRenderDevice& VkDev,
-    const char* vertex_spv_filename,
-    const char* fragment_spv_filename,
-    const VkPipelineLayout& pipelineLayout,
-    VkPipeline& pipeline,
-    std::vector<VkVertexInputAttributeDescription> attributeDescription = VertexData::getAttributeDescription(),
-    std::vector<VkVertexInputBindingDescription> bindingDescription = { VertexData::getBindingDescription() },
-    uint32_t width = 0, uint32_t height = 0,
-    VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT,
-    VkBool32 depthTestEnable = VK_TRUE,
-    VkBool32 depthWriteEnable = VK_TRUE);
-void createGraphicsPipeline(const VulkanRenderDevice& VkDev,
-    const char* vertex_spv_filename,
-    const char* fragment_spv_filename,
-    const char* geometry_spv_filename,
-    const VkPipelineLayout& pipelineLayout,
-    VkPipeline& pipeline,
-    std::vector<VkVertexInputAttributeDescription> attributeDescription = VertexData::getAttributeDescription(),
-    std::vector<VkVertexInputBindingDescription> bindingDescription = { VertexData::getBindingDescription() },
-    uint32_t width=0, uint32_t height=0,
-    VkCullModeFlags cullMode=VK_CULL_MODE_BACK_BIT,
-    VkBool32 depthTestEnable = VK_TRUE,
-    VkBool32 depthWriteEnable = VK_TRUE);
+VkPipelineShaderStageCreateInfo setPipelineShaderStage(VkShaderModule shader, VkShaderStageFlagBits stage);
+VkPipelineInputAssemblyStateCreateInfo setPipelineInputAssemblyState(VkPrimitiveTopology topology, VkBool32 primitiveRestartEnable = VK_FALSE);
+VkPipelineVertexInputStateCreateInfo setPipelineVertexInputState(std::vector<VkVertexInputAttributeDescription>& attribute, std::vector<VkVertexInputBindingDescription>& binding);
+VkPipelineViewportStateCreateInfo setPipelineViewportState(uint32_t viewportCount, uint32_t scissorCount);
+VkPipelineRasterizationStateCreateInfo setPipelineRasterizationState(VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT, VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL, VkFrontFace frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE);
+VkPipelineDynamicStateCreateInfo setPipelineDynamicState(std::vector<VkDynamicState>& dynamicStates);
+VkPipelineMultisampleStateCreateInfo setPipelineMultisampleState();
+VkPipelineColorBlendAttachmentState setPipelineColorBlendAttachmentState();
+VkPipelineColorBlendStateCreateInfo setPipelineColorBlendState(VkPipelineColorBlendAttachmentState* colorBlendAttachment);
+VkPipelineDepthStencilStateCreateInfo setPipelineDepthStencilState(VkBool32 depthTestEnable = VK_TRUE, VkBool32 depthWriteEnable = VK_TRUE, VkCompareOp depthCompareOp = VK_COMPARE_OP_LESS);

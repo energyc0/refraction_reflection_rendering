@@ -28,15 +28,48 @@ CubeRenderer::~CubeRenderer() {
     vkDestroyImageView(device, cubemap.imageInfo.imageView,nullptr);
 }
 void CubeRenderer::createPipeline(const VulkanRenderDevice& VkDev) {
-    createGraphicsPipeline(VkDev,
-        "shaders/skyboxVertexShader.spv",
-        "shaders/skyboxFragmentShader.spv",
-        pipelineLayout,
-        graphicsPipeline,
-        {}, {},
-        framebufferWidth, framebufferHeight,
-        VK_CULL_MODE_BACK_BIT, 
-        VK_FALSE, VK_FALSE);
+    VkShaderModule vertexShaderModule = createShaderModule(VkDev, "shaders/skyboxVertexShader.spv"),
+        fragmentShaderModule = createShaderModule(VkDev, "shaders/skyboxFragmentShader.spv");
+
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages(2);
+    shaderStages[0] = setPipelineShaderStage(vertexShaderModule, VK_SHADER_STAGE_VERTEX_BIT);
+    shaderStages[1] = setPipelineShaderStage(fragmentShaderModule, VK_SHADER_STAGE_FRAGMENT_BIT);
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly = setPipelineInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    auto attribute = VertexData::getAttributeDescription();
+    auto bindings = VertexData::getBindingDescription();
+    VkPipelineVertexInputStateCreateInfo vertexInput = setPipelineVertexInputState(attribute, bindings);
+    VkPipelineViewportStateCreateInfo viewportState = setPipelineViewportState(1, 1);
+    VkPipelineRasterizationStateCreateInfo rasterization = setPipelineRasterizationState();
+    std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    VkPipelineDynamicStateCreateInfo dynamicState = setPipelineDynamicState(dynamicStates);
+    VkPipelineMultisampleStateCreateInfo multisampling = setPipelineMultisampleState();
+    VkPipelineColorBlendAttachmentState colorBlendAttachment = setPipelineColorBlendAttachmentState();
+    VkPipelineColorBlendStateCreateInfo colorBlending = setPipelineColorBlendState(&colorBlendAttachment);
+    VkPipelineDepthStencilStateCreateInfo depthCreate = setPipelineDepthStencilState(VK_TRUE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
+
+    VkGraphicsPipelineCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    createInfo.stageCount = shaderStages.size();
+    createInfo.pStages = shaderStages.data();
+    createInfo.layout = pipelineLayout;
+    createInfo.renderPass = VkDev.renderPass;
+    createInfo.subpass = 0;
+    createInfo.pInputAssemblyState = &inputAssembly;
+    createInfo.pVertexInputState = &vertexInput;
+    createInfo.pViewportState = &viewportState;
+    createInfo.pRasterizationState = &rasterization;
+    createInfo.pDepthStencilState = &depthCreate;
+    createInfo.pDynamicState = &dynamicState;
+    createInfo.pMultisampleState = &multisampling;
+    createInfo.pTessellationState = nullptr;
+    createInfo.pColorBlendState = &colorBlending;
+
+    if (vkCreateGraphicsPipelines(VkDev.device, NULL, 1, &createInfo, NULL, &graphicsPipeline)) {
+        std::cerr << "vkCreateGraphicsPipelines() - FAILED!";
+        exit(EXIT_FAILURE);
+    }
+    vkDestroyShaderModule(VkDev.device, vertexShaderModule, nullptr);
+    vkDestroyShaderModule(VkDev.device, fragmentShaderModule, nullptr);
 }
 void CubeRenderer::createCubemapTexture(VulkanRenderDevice& VkDev,CubemapFilenames* filenames) {
     std::array<stbi_uc*, 6> pixels{};
@@ -97,25 +130,16 @@ void CubeRenderer::createCubemapTexture(VulkanRenderDevice& VkDev,CubemapFilenam
     vkDestroyBuffer(device, stagingBuffer.buffer, nullptr);
     createSampler(VkDev, cubemap.sampler);
 }
-void CubeRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, uint32_t currentImage) {
+void CubeRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, uint32_t currentImage, float deltaTime) {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentImage], 0, NULL);
     vkCmdDraw(commandBuffer, 36, 1, 0, 0);
 }
-void CubeRenderer::updateUniformBuffers(const Camera& camera, float deltaTime, uint32_t currentImage) {
+void CubeRenderer::updateUniformBuffers(const ApplicationOptions& options, uint32_t currentImage) {
     TransformMatricesData data;
     data.model = glm::mat4(1.0f);
-    data.view = camera.getCameraView();
-    data.perspective = glm::perspective(90.f, static_cast<float>(framebufferWidth) / static_cast<float>(framebufferHeight), 0.1f, 10000.f);
+    data.view = options.currentCamera->getCameraView();
+    data.perspective = glm::perspective(90.f, static_cast<float>(framebufferWidth) / static_cast<float>(framebufferHeight), 0.1f, 100000.f);
     data.perspective[1][1] *= -1;
     memcpy(uniformBuffers[currentImage].pointer, &data, uniformBuffers[currentImage].size);
-}
-void CubeRenderer::cleanupSwapchainComponents() {
-    vkDestroyPipeline(device, graphicsPipeline, nullptr);
-}
-void CubeRenderer::recreateSwapchainComponents(const VulkanRenderDevice& VkDev) {
-    cleanupSwapchainComponents();
-    framebufferWidth = VkDev.swapchainInfo.width;
-    framebufferHeight = VkDev.swapchainInfo.height;
-    createPipeline(VkDev);
 }

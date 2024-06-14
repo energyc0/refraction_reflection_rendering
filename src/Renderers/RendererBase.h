@@ -1,6 +1,5 @@
 #pragma once
 #include "VulkanUtilities.h"
-#include "Camera.h"
 
 class RendererBase {
 protected:
@@ -23,10 +22,8 @@ public:
 		framebufferWidth(VkDev.swapchainInfo.width),
 		framebufferHeight(VkDev.swapchainInfo.height){};
 	virtual ~RendererBase();
-	virtual void fillCommandBuffer(VkCommandBuffer commandBuffer, uint32_t currentImage) = 0;
-	virtual void updateUniformBuffers(const Camera& camera, float deltaTime, uint32_t currentImage) {};
-	virtual void cleanupSwapchainComponents() = 0;
-	virtual void recreateSwapchainComponents(const VulkanRenderDevice& VkDev) = 0;
+	virtual void fillCommandBuffer(VkCommandBuffer commandBuffer, uint32_t currentImage, float deltaTime) = 0;
+	virtual void updateUniformBuffers(const ApplicationOptions& options, uint32_t currentImage) {};
 protected:
 	bool createUniformBuffers(const VulkanRenderDevice& VkDev, VkDeviceSize bufferSize);
 	virtual void createDescriptorTools(const VulkanRenderDevice& VkDev, VkDescriptorImageInfo* imageInfo = nullptr);
