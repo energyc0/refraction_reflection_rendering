@@ -32,7 +32,6 @@ void main()
 	else if(push.isReflectionEnabled){
 		vec3 dist = normalize(fragPos - push.cameraPos);
 		vec3 reflected = reflect(dist,fragNorm);
-		//reflected.y*=-1.0;
 		outColor = vec4(texture(cubemap, reflected).rgb,1.0);	
 	}
 	else if(push.isWireframeShown){

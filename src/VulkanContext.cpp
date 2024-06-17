@@ -4,6 +4,7 @@ bool isWindowResized = false;
 
 const char* obj_filename = "assets/models/Duck.obj";
 const char* mtl_filename = "assets/models";
+const char* screenshoot_image = "C:/Users/maksi/Desktop/screenshot_image.ppm";
 
 VulkanContext::VulkanContext(GLFWwindow* window, const char* pApplicationName, const char* pEngineName, ApplicationOptions& options) : window(window){
 	VkInst = (new VulkanInstance(window,pApplicationName,pEngineName));
@@ -17,7 +18,7 @@ VulkanContext::VulkanContext(GLFWwindow* window, const char* pApplicationName, c
 	imguiRenderer = (new ImGuiRenderer(*VkInst, *VkDev, window, &options));
 	currentImage = 0;
 }
-void VulkanContext::drawFrame(const ApplicationOptions& options,float deltaTime) {
+void VulkanContext::drawFrame(ApplicationOptions& options,float deltaTime) {
 	vkWaitForFences(VkDev->device, 1, &drawFrameFences[currentImage], VK_TRUE, UINT64_MAX);
 	uint32_t imageIndex = 0;
 	VkResult result = vkAcquireNextImageKHR(VkDev->device,
@@ -60,6 +61,13 @@ void VulkanContext::drawFrame(const ApplicationOptions& options,float deltaTime)
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = &VkDev->swapchainInfo.swapchain;
 	presentInfo.pImageIndices = &imageIndex;
+	
+	if (options.isImageToSave) {
+		vkDeviceWaitIdle(VkDev->device);
+		saveImage(imageIndex);
+		options.isImageToSave = false;
+	}
+	
 	result = vkQueuePresentKHR(VkDev->graphicsQueue,&presentInfo);
 	if (isWindowResized || result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
 		isWindowResized = false;
@@ -86,7 +94,7 @@ VulkanContext::~VulkanContext() {
 }
 void VulkanContext::recreateSwapchain() {
 	cleanupSwapchain();
-	VkDev->recreateSwapchain(*VkInst,const_cast<GLFWwindow*>(window));
+	VkDev->recreateSwapchain(*VkInst, const_cast<GLFWwindow*>(window));
 }
 void VulkanContext::cleanupSwapchain() {
 	vkDeviceWaitIdle(VkDev->device);
@@ -98,7 +106,7 @@ void VulkanContext::cleanupSwapchain() {
 	}
 	VkDev->cleanupSwapchain();
 }
-void VulkanContext::updateUniformBuffers(const ApplicationOptions& options,float deltaTime) {
+void VulkanContext::updateUniformBuffers(const ApplicationOptions& options, float deltaTime) {
 	meshRenderer->updateUniformBuffers(options, currentImage);
 	cubeRenderer->updateUniformBuffers(options, currentImage);
 }
@@ -160,4 +168,147 @@ void VulkanContext::createSyncObjects() {
 			exit(EXIT_FAILURE);
 		}
 	}
+}
+void VulkanContext::saveImage(uint32_t currentImage) {
+	bool supportBlit = true;
+	VkFormatProperties properties;
+	vkGetPhysicalDeviceFormatProperties(VkDev->physicalDevice, VkDev->swapchainInfo.format, &properties);
+	if (!(properties.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT)) {
+		std::cerr << "Blitting is not supported!\n";
+		supportBlit = false;
+	}
+	VulkanImage stagingImage{};
+	stagingImage.format = VK_FORMAT_R8G8B8A8_SRGB;
+	stagingImage.height = VkDev->swapchainInfo.height;
+	stagingImage.width = VkDev->swapchainInfo.width;
+	VkImageSubresourceRange range{};
+	range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	range.baseArrayLayer = 0;
+	range.baseMipLevel = 0;
+	range.layerCount = 1;
+	range.levelCount = 1;
+	createImage(*VkDev,
+		stagingImage,
+		VK_IMAGE_TILING_LINEAR,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,1);
+	transitionImageLayout(*VkDev,
+		stagingImage.image,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		NULL,
+		VK_ACCESS_TRANSFER_WRITE_BIT,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		range);
+	transitionImageLayout(*VkDev,
+		VkDev->swapchainInfo.images[currentImage],
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_ACCESS_MEMORY_READ_BIT,
+		VK_ACCESS_TRANSFER_READ_BIT,
+		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		range);
+	auto commandBuffer = beginSingleCommandBuffer(*VkDev);
+	if (supportBlit) {
+		VkOffset3D offset;
+		offset.x = stagingImage.width;
+		offset.y = stagingImage.height;
+		offset.z = 1;
+		VkImageBlit region{};
+		region.srcOffsets[1] = offset;
+		region.dstOffsets[1] = offset;
+		region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.srcSubresource.baseArrayLayer = 0;
+		region.srcSubresource.layerCount = 1;
+		region.srcSubresource.mipLevel = 0;
+		region.dstSubresource = region.srcSubresource;
+		vkCmdBlitImage(commandBuffer,
+			VkDev->swapchainInfo.images[currentImage], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			stagingImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1, &region,
+			VK_FILTER_LINEAR);
+	}
+	else {
+		VkImageCopy region{};
+		region.extent = {VkDev->swapchainInfo.width,VkDev->swapchainInfo.height,1};
+		region.srcOffset = { 0,0,0 };
+		region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.srcSubresource.baseArrayLayer = 0;
+		region.srcSubresource.layerCount = 1;
+		region.srcSubresource.mipLevel = 0;
+		region.dstOffset = { 0,0,0 };
+		region.dstSubresource = region.srcSubresource;
+		vkCmdCopyImage(commandBuffer,
+			VkDev->swapchainInfo.images[currentImage], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			stagingImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1, &region);
+	}
+	endSingleCommandBuffer(*VkDev, commandBuffer);
+	transitionImageLayout(*VkDev,
+		VkDev->swapchainInfo.images[currentImage],
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_ACCESS_TRANSFER_READ_BIT,
+		VK_ACCESS_MEMORY_READ_BIT,
+		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		range);
+	transitionImageLayout(*VkDev,
+		stagingImage.image,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_ACCESS_TRANSFER_WRITE_BIT,
+		VK_ACCESS_MEMORY_READ_BIT,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		range);
+	VkMemoryRequirements memReq;
+	vkGetImageMemoryRequirements(VkDev->device, stagingImage.image, &memReq);
+	VkImageSubresource imgSubRes;
+	imgSubRes.arrayLayer = 0;
+	imgSubRes.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	imgSubRes.mipLevel = 0;
+	VkSubresourceLayout subresources;
+	vkGetImageSubresourceLayout(VkDev->device, stagingImage.image, &imgSubRes, &subresources);
+
+	const char* data;
+	vkMapMemory(VkDev->device, stagingImage.imageMemory, 0, VK_WHOLE_SIZE, NULL, (void**)&data);
+	data += subresources.offset;
+
+	bool isSwizzled = VkDev->swapchainInfo.format == VK_FORMAT_B8G8R8_SNORM||
+		VkDev->swapchainInfo.format == VK_FORMAT_B8G8R8_UNORM||
+		VkDev->swapchainInfo.format == VK_FORMAT_B8G8R8_SRGB;
+
+	std::ofstream file(screenshoot_image, std::ios_base::out | std::ios_base::binary);
+	if (!file.is_open()) {
+		std::cerr << "FAILED TO OPEN THE FILE!";
+		exit(EXIT_FAILURE);
+	}
+	//file header;
+	file << "P6\n" << VkDev->swapchainInfo.width << '\n' << VkDev->swapchainInfo.height << '\n' << 255 << "\n";
+	const uint32_t height = VkDev->swapchainInfo.height,
+		width = VkDev->swapchainInfo.width;
+	for (uint32_t h = 0; h < height; h++) {
+		unsigned int* row = (unsigned int*)data;
+		for (uint32_t w = 0; w < width; w++) {
+			if (isSwizzled) {
+				file.write((const char*)row+2, 1);
+				file.write((const char*)row + 1, 1);
+				file.write((const char*)row, 1);
+			}
+			else {
+				file.write((const char*)row, 3);
+			}
+			row++;
+		}
+		data += subresources.rowPitch;
+	}
+	file.close();
+	std::cout << "Screenshot has saved: " << screenshoot_image;
+	vkUnmapMemory(VkDev->device, stagingImage.imageMemory);
+	vkDestroyImage(VkDev->device, stagingImage.image, nullptr);
+	vkFreeMemory(VkDev->device, stagingImage.imageMemory, nullptr);
 }

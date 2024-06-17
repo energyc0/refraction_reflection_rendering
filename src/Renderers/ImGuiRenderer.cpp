@@ -53,7 +53,7 @@ void ImGuiRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, uint32_t cu
             ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags_NoResize);
         ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
-        ImGui::Text("Press F11 to close/open");
+        ImGui::Text("Press F11 to close/open\nPress F9 to take a screenshot");
         ImGui::Text("OPTIONS");
         ImGui::Text("FPS: %d", static_cast<int>(1000 / deltaTime));
         ImGui::Text("Camera position:\nX = %.2f \nY = %.2f% \nZ = %.2f", pos.x, pos.y, pos.z);

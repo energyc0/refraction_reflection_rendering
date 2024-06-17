@@ -21,6 +21,7 @@ App::App(int width, int height, const char* pApplicationName, const char* pEngin
     options.scrollSpeed = 50.f;
     options.currentCamera = &freeCamera;
     options.isInterfaceShown = true;
+    options.isImageToSave = false;
     keys.fill(false);
 }
 App::~App() {
@@ -87,5 +88,8 @@ void KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int
     }
     else if(key == GLFW_KEY_F11 && action == GLFW_PRESS){
         options->isInterfaceShown = options->isInterfaceShown == false;
+    }
+    else if(key == GLFW_KEY_F9) {
+        options->isImageToSave = action == GLFW_PRESS;
     }
 }

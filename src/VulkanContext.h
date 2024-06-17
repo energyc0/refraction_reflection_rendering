@@ -3,6 +3,7 @@
 #include "MeshRenderer.h"
 #include "CubeRenderer.h"
 #include "ImGuiRenderer.h"
+#include <fstream>
 
 class VulkanContext {
 private:
@@ -13,13 +14,13 @@ private:
 	CubeRenderer* cubeRenderer;
 	ImGuiRenderer* imguiRenderer;
 	uint32_t currentImage;
-
+	
 	std::vector<VkSemaphore> imageReadySemaphores;
 	std::vector<VkSemaphore> readyToRenderSemaphores;
 	std::vector<VkFence> drawFrameFences;
 public:
 	VulkanContext(GLFWwindow* window, const char* pApplicationName, const char* pEngineName, ApplicationOptions& options);
-	void drawFrame(const ApplicationOptions& options, float deltaTime);
+	void drawFrame(ApplicationOptions& options, float deltaTime);
 	~VulkanContext();
 private:
 	void createSyncObjects();
@@ -27,4 +28,5 @@ private:
 	void cleanupSwapchain();
 	void recordCommandBuffers(float deltaTime);
 	void updateUniformBuffers(const ApplicationOptions& options, float deltaTime);
+	void saveImage(uint32_t currentImage);
 };

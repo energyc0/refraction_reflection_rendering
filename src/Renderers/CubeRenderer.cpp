@@ -116,6 +116,7 @@ void CubeRenderer::createCubemapTexture(VulkanRenderDevice& VkDev,CubemapFilenam
         6);
     transitionImageLayout(VkDev,cubemap.imageInfo.image,
         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+        NULL,VK_ACCESS_TRANSFER_WRITE_BIT,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
     copyImageToBuffer(VkDev,
         stagingBuffer.buffer,
@@ -125,6 +126,7 @@ void CubeRenderer::createCubemapTexture(VulkanRenderDevice& VkDev,CubemapFilenam
         6);
     transitionImageLayout(VkDev, cubemap.imageInfo.image,
         VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        VK_ACCESS_TRANSFER_READ_BIT,VK_ACCESS_SHADER_READ_BIT,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cubemap.desiredLayout, subresourceRange);
     vkFreeMemory(device, stagingBuffer.memory, nullptr);
     vkDestroyBuffer(device, stagingBuffer.buffer, nullptr);

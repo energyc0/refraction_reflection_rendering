@@ -6,7 +6,7 @@ void createImage(const VulkanRenderDevice& VkDev,
 	VkImageTiling tiling,
 	VkSampleCountFlagBits samples,
 	VkImageUsageFlags usage,
-	VkMemoryPropertyFlagBits property,
+	VkMemoryPropertyFlags property,
 	uint32_t layersCount)
 {
 	VkImageCreateInfo createInfo{};
@@ -208,6 +208,8 @@ void transitionImageLayout(const VulkanRenderDevice& VkDev,
 	VkImage& image,
 	VkPipelineStageFlags srcStageMask,
 	VkPipelineStageFlags dstStageMask,
+	VkAccessFlags srcAccessMask,
+	VkAccessFlags dstAccessMask,
 	VkImageLayout oldLayout,
 	VkImageLayout newLayout,
 	VkImageSubresourceRange subresourceRange) {
@@ -218,18 +220,8 @@ void transitionImageLayout(const VulkanRenderDevice& VkDev,
 	memoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	memoryBarrier.oldLayout = oldLayout;
 	memoryBarrier.newLayout = newLayout;
-	if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-		memoryBarrier.srcAccessMask = 0;
-		memoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-	}
-	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-		memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-	}
-	else {
-		std::cerr << "UNDEFINED LAYOUTS!";
-		exit(EXIT_FAILURE);
-	}
+	memoryBarrier.srcAccessMask = srcAccessMask;
+	memoryBarrier.dstAccessMask = dstAccessMask;
 	memoryBarrier.subresourceRange = subresourceRange;
 	VkCommandBuffer commandBuffer = beginSingleCommandBuffer(VkDev);
 	vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, NULL, 0, NULL, 0, NULL, 1, &memoryBarrier);
@@ -648,7 +640,7 @@ void VulkanRenderDevice::createSwapchain(const VulkanInstance& VkInst, GLFWwindo
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	createInfo.surface = VkInst.surface;
 	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	createInfo.preTransform = surfaceCapabilities.currentTransform;
 	createInfo.minImageCount = surfaceCapabilities.minImageCount + 1;
 	if (createInfo.minImageCount > surfaceCapabilities.maxImageCount) {

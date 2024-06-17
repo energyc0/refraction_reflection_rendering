@@ -118,6 +118,7 @@ struct ApplicationOptions {
     float scrollSpeed;
     CameraBase* currentCamera;
     bool isInterfaceShown;
+    bool isImageToSave;
 };
 
 class VulkanInstance {
@@ -178,7 +179,7 @@ void createImage(const VulkanRenderDevice& VkDev,
     VkImageTiling tiling,
     VkSampleCountFlagBits samples,
     VkImageUsageFlags usage,
-    VkMemoryPropertyFlagBits property,
+    VkMemoryPropertyFlags property,
     uint32_t layersCount = 1);
 
 void createImageView(const VulkanRenderDevice& VkDev,
@@ -220,6 +221,8 @@ void transitionImageLayout(const VulkanRenderDevice& VkDev,
     VkImage& image,
     VkPipelineStageFlags srcStageMask,
     VkPipelineStageFlags dstStageMask,
+    VkAccessFlags srcAccessMask,
+    VkAccessFlags dstAccessMask,
     VkImageLayout oldLayout,
     VkImageLayout newLayout,
     VkImageSubresourceRange subresourceRange);
