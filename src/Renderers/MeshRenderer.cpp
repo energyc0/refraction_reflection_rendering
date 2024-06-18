@@ -83,7 +83,7 @@ void MeshRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, uint32_t cur
 }
 void MeshRenderer::updateUniformBuffers(const ApplicationOptions& options, uint32_t currentImage) {
     TransformMatricesData data;
-    data.model = glm::scale(glm::mat4(1.0f), size);
+    data.model = glm::translate(glm::mat4(1.0), glm::vec3(0.0f,-300.f,0.f))*glm::scale(glm::mat4(1.0f), size);
     data.view = options.currentCamera->getCameraView();
     data.perspective = glm::perspective(90.f, static_cast<float>(framebufferWidth) / static_cast<float>(framebufferHeight), 0.1f, 100000.f);
     data.perspective[1][1] *= -1;

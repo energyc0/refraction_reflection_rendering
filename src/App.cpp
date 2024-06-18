@@ -13,7 +13,7 @@ void KeyboardCallback(GLFWwindow* window, int key, int scancode,int action, int 
 App::App(int width, int height, const char* pApplicationName, const char* pEngineName) :
     timer(10.f),
     centredCamera(glm::vec3(1.f,0.f,0.f), glm::vec3(0.f),1.0f,1.0f),
-    freeCamera(glm::vec3(0.f, 0.f, 100.f), glm::vec3(0.f), 1.f,1.f) {
+    freeCamera(glm::vec3(0.f, 0.f, 400.f), glm::vec3(0.f), 1.f,1.f) {
     initWindow(width,height);
     vkContext = std::make_unique<VulkanContext>(window, pApplicationName, pEngineName, options);
     options.mode = static_cast<int>(DrawingMode::SOLID);
